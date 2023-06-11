@@ -554,9 +554,8 @@ class StableDiffusionLDM3DImg2ImgPipeline(DiffusionPipeline, TextualInversionLoa
         if not isinstance(image, (torch.Tensor, PIL.Image.Image, list)):
             raise ValueError(
                 f"`image` has to be of type `torch.Tensor`, `PIL.Image.Image` or list but is {type(image)}"
-            )
-        image = image.to(device=device, dtype=dtype)
-        image = torch.cat(image, dim=1)  #remove, temporary
+            )        
+        image = image.to(device=device, dtype=dtype)    
 
         batch_size = batch_size * num_images_per_prompt
         if isinstance(generator, list) and len(generator) != batch_size:
@@ -720,8 +719,7 @@ class StableDiffusionLDM3DImg2ImgPipeline(DiffusionPipeline, TextualInversionLoa
         )
 
         # 4. Preprocess image
-        rgb, depth = image
-        rgb, depth = self.image_processor.preprocess(rgb, depth)
+        image = self.image_processor.preprocess(image[0], image[1])
 
         # 5. set timesteps
         self.scheduler.set_timesteps(num_inference_steps, device=device)

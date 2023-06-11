@@ -370,8 +370,9 @@ class VaeImageProcessorLDM3D(VaeImageProcessor):
         w, h = map(lambda x: x - x % 32, (w, h))  # resize to integer multiple of 32
         im_depth = im_depth.resize((w, h), resample=PIL.Image.LANCZOS)
         im_depth = np.array(im_depth).astype(np.float32) / 255.0
-        im_depth = im_depth[None].transpose(0, 3, 1, 2) #(1,3,512,512)
+       # im_depth = im_depth[None].transpose(0, 3, 1, 2) #(1,3,512,512)
         im_depth = 2.*im_depth - 1.
+        im_depth = self.numpy_to_pil(im_depth)[0]
         return im_depth
 
     def preprocess(
@@ -452,6 +453,8 @@ class VaeImageProcessorLDM3D(VaeImageProcessor):
             rgb = self.normalize(rgb)
             depth = self.normalize(depth)
 
-        return (rgb, depth)
+        image = torch.cat([rgb, depth], dim=1) 
+
+        return image
 
 
