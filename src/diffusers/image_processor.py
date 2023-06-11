@@ -253,6 +253,7 @@ class VaeImageProcessor(ConfigMixin):
             return self.numpy_to_pil(image)
 
 
+
 class VaeImageProcessorLDM3D(VaeImageProcessor):
     """
     Image Processor for VAE LDM3D
@@ -273,11 +274,7 @@ class VaeImageProcessorLDM3D(VaeImageProcessor):
 
     @register_to_config
     def __init__(
-        self,
-        do_resize: bool = True,
-        vae_scale_factor: int = 8,
-        resample: str = "lanczos",
-        do_normalize: bool = True,
+        self, do_resize: bool = True, vae_scale_factor: int = 8, resample: str = "lanczos", do_normalize: bool = True,
     ):
         super().__init__()
 
@@ -306,7 +303,7 @@ class VaeImageProcessorLDM3D(VaeImageProcessor):
         Returns: depth map
 
         """
-        return image[:, :, 1] * 2**8 + image[:, :, 2]
+        return image[:, :, 1] * 2 ** 8 + image[:, :, 2]
 
     def numpy_to_depth(self, images):
         """
@@ -372,10 +369,10 @@ class VaeImageProcessorLDM3D(VaeImageProcessor):
         w, h = im_depth.size
         w, h = map(lambda x: x - x % 32, (w, h))  # resize to integer multiple of 32
         im_depth = im_depth.resize((w, h), resample=PIL.Image.LANCZOS)
-        #im_depth = np.array(im_depth).astype(np.float32) / 255.0
-       # im_depth = im_depth[None].transpose(0, 3, 1, 2) #(1,3,512,512)
+        im_depth = np.array(im_depth).astype(np.float32) / 255.0
+        im_depth = im_depth[None].transpose(0, 3, 1, 2) #(1,3,512,512)
         im_depth = 2.*im_depth - 1.
-        return Image.fromarray(im_depth.squeeze(0))
+        return im_depth
 
     def preprocess(
         self,
