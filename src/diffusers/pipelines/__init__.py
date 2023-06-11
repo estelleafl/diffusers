@@ -79,6 +79,7 @@ else:
         StableDiffusionLDM3DPipeline,
         StableDiffusionLDM3DImg2ImgPipeline,
         StableDiffusionLatentUpscalePipeline,
+        StableDiffusionLDM3DPipeline,
         StableDiffusionModelEditingPipeline,
         StableDiffusionPanoramaPipeline,
         StableDiffusionPipeline,

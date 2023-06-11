@@ -35,6 +35,7 @@ class StableDiffusionPipelineOutput(BaseOutput):
     images: Union[List[PIL.Image.Image], np.ndarray]
     nsfw_content_detected: Optional[List[bool]]
 
+
 @dataclass
 class LDM3DPipelineOutput(BaseOutput):
     """
@@ -48,9 +49,11 @@ class LDM3DPipelineOutput(BaseOutput):
             List of flags denoting whether the corresponding generated image likely represents "not-safe-for-work"
             (nsfw) content, or `None` if safety checking could not be performed.
     """
+
     rgb: Union[List[PIL.Image.Image], np.ndarray]
     depth: Union[List[PIL.Image.Image], np.ndarray]
     nsfw_content_detected: Optional[List[bool]]
+
 
 try:
     if not (is_transformers_available() and is_torch_available()):
@@ -68,6 +71,7 @@ else:
     from .pipeline_stable_diffusion_inpaint_legacy import StableDiffusionInpaintPipelineLegacy
     from .pipeline_stable_diffusion_instruct_pix2pix import StableDiffusionInstructPix2PixPipeline
     from .pipeline_stable_diffusion_latent_upscale import StableDiffusionLatentUpscalePipeline
+    from .pipeline_stable_diffusion_ldm3d import StableDiffusionLDM3DPipeline
     from .pipeline_stable_diffusion_model_editing import StableDiffusionModelEditingPipeline
     from .pipeline_stable_diffusion_panorama import StableDiffusionPanoramaPipeline
     from .pipeline_stable_diffusion_sag import StableDiffusionSAGPipeline
