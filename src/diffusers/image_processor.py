@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import warnings
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Tuple
 
 import numpy as np
 import PIL
@@ -357,3 +357,98 @@ class VaeImageProcessorLDM3D(VaeImageProcessor):
             return self.numpy_to_pil(image), self.numpy_to_depth(image)
         else:
             raise Exception(f"This type {output_type} is not supported")
+
+    def transform_depth(self, im_depth):
+        im_depth = self.convert_to_rgb(im_depth) 
+        # im_depth =  np.array(im_depth)
+       # im_depth = cv2.cvtColor(im_depth, cv2.COLOR_BGR2RGB)
+        # im_depth = Image.fromarray(im_depth)
+        w, h = im_depth.size
+        w, h = map(lambda x: x - x % 32, (w, h))  # resize to integer multiple of 32
+        im_depth = im_depth.resize((w, h), resample=PIL.Image.LANCZOS)
+        #im_depth = np.array(im_depth).astype(np.float32) / 255.0
+       # im_depth = im_depth[None].transpose(0, 3, 1, 2) #(1,3,512,512)
+        im_depth = 2.*im_depth - 1.
+        return Image.fromarray(im_depth.squeeze(0))
+
+    def preprocess(
+        self,
+        rgb: Union[torch.FloatTensor, PIL.Image.Image, np.ndarray],
+        depth: Union[torch.FloatTensor, PIL.Image.Image, np.ndarray],
+        height: Optional[int] = None,
+        width: Optional[int] = None,
+    ) -> torch.Tensor:
+        """
+        Preprocess the image input, accepted formats are PIL images, numpy arrays or pytorch tensors"
+        """
+        depth = self.transform_depth(depth)
+        supported_formats = (PIL.Image.Image, np.ndarray, torch.Tensor)
+        if isinstance(rgb, supported_formats):
+            rgb = [rgb]
+            depth = [depth]
+        elif not (isinstance(rgb, list) and all(isinstance(i, supported_formats) for i in rgb)):
+            raise ValueError(
+                f"Input is in incorrect format: {[type(i) for i in rgb]}. Currently, we only support {', '.join(supported_formats)}"
+            )
+
+        if isinstance(rgb[0], PIL.Image.Image):
+            if self.config.do_convert_rgb:
+                rgb = [self.convert_to_rgb(i) for i in rgb]
+
+            if self.config.do_resize:
+                rgb = [self.resize(i, height, width) for i in rgb]
+                depth = [self.resize(i, height, width) for i in depth]
+            rgb = self.pil_to_numpy(rgb)  # to np
+            rgb = self.numpy_to_pt(rgb)  # to pt
+            depth = self.pil_to_numpy(depth)  # to np
+            depth = self.numpy_to_pt(depth)  # to pt
+
+        elif isinstance(rgb[0], np.ndarray):
+            rgb = np.concatenate(rgb, axis=0) if rgb[0].ndim == 4 else np.stack(rgb, axis=0)
+            depth = np.concatenate(depth, axis=0) if rgb[0].ndim == 4 else np.stack(depth, axis=0)
+            rgb = self.numpy_to_pt(rgb)
+            depth = self.numpy_to_pt(depth)
+            _, _, height, width = rgb.shape
+            if self.config.do_resize and (
+                height % self.config.vae_scale_factor != 0 or width % self.config.vae_scale_factor != 0
+            ):
+                raise ValueError(
+                    f"Currently we only support resizing for PIL image - please resize your numpy array to be divisible by {self.config.vae_scale_factor}"
+                    f"currently the sizes are {height} and {width}. You can also pass a PIL image instead to use resize option in VAEImageProcessor"
+                )
+
+        elif isinstance(rgb[0], torch.Tensor):
+            rgb = torch.cat(rgb, axis=0) if rgb[0].ndim == 4 else torch.stack(rgb, axis=0)
+            depth = torch.cat(depth, axis=0) if depth[0].ndim == 4 else torch.stack(depth, axis=0)
+
+            _, channel, height, width = rgb.shape
+
+            # don't need any preprocess if the image is latents
+            if channel == 4:
+                return (rgb, depth)
+
+            if self.config.do_resize and (
+                height % self.config.vae_scale_factor != 0 or width % self.config.vae_scale_factor != 0
+            ):
+                raise ValueError(
+                    f"Currently we only support resizing for PIL image - please resize your pytorch tensor to be divisible by {self.config.vae_scale_factor}"
+                    f"currently the sizes are {height} and {width}. You can also pass a PIL image instead to use resize option in VAEImageProcessor"
+                )
+
+        # expected range [0,1], normalize to [-1,1]
+        do_normalize = self.config.do_normalize
+        if rgb.min() < 0:
+            warnings.warn(
+                "Passing `image` as torch tensor with value range in [-1,1] is deprecated. The expected value range for image tensor is [0,1] "
+                f"when passing as pytorch tensor or numpy Array. You passed `image` with value range [{image.min()},{image.max()}]",
+                FutureWarning,
+            )
+            do_normalize = False
+
+        if do_normalize:
+            rgb = self.normalize(rgb)
+            depth = self.normalize(depth)
+
+        return (rgb, depth)
+
+

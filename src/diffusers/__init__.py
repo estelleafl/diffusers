@@ -153,6 +153,7 @@ else:
         StableDiffusionPanoramaPipeline,
         StableDiffusionPipeline,
         StableDiffusionLDM3DPipeline,
+        StableDiffusionLDM3DImg2ImgPipeline,
         StableDiffusionPipelineSafe,
         StableDiffusionPix2PixZeroPipeline,
         StableDiffusionSAGPipeline,
